@@ -25,7 +25,8 @@ export def "compress-video" [src: string, target: string] {
       let now = (date now)
       let elapsed = ($now - $started)
       let remain = ($elapsed / $percent) - $elapsed
-      let target_size = (ls $target | get size | first)
+      
+      let target_size = (powershell -c $"\(Get-Item ($target)\).Length" | into filesize)
       let final_size = ($target_size / $percent)
       let final_size_mib = ($final_size  / 1_048_576 | into int)
       let elapsed_str = ($elapsed | into string | str replace --regex "(?!.+sec) .*" "")
