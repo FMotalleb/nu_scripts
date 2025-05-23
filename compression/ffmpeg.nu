@@ -31,7 +31,7 @@ export def "compress-video" [src: string, target: string] {
       let elapsed_str = ($elapsed | into string | str replace --regex "(?!.+sec) .*" "")
       let remain_str = ($remain | into string | str replace --regex "(?!.+sec) .*" "")
       let width = ((term size | get columns) * 0.8 | into int)
-      let progress_line = $"($beginning)[(progress bar $percent --width $width | ansi gradient --fgstart '0xD03030' --fgend '0x00FF00')] ($percent * 100 | math ceil)%"
+      let progress_line = $"($beginning)[(progress bar $percent --width $width | ansi gradient --fgstart '0xD03030' --fgend '0x00FF00')] ($percent * 100 | math floor)%"
       let info_line = $"elapsed: (ansi green_bold)($elapsed_str)(ansi reset) remaining: (ansi green_bold)($remain_str)(ansi reset), final size: (ansi green_bold)~($final_size_mib) MiB(ansi reset) reduction: (ansi green_bold)~(((1 - $final_size / $size) * 100) | math round --precision 2)%(ansi reset)"
       print -n $"(ansi -e "1A")(ansi -e "2K")\r($info_line)\n(ansi -e "2K")($progress_line)"
     }
