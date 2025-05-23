@@ -33,7 +33,11 @@ export def "compress-video" [src: string, target: string] {
       print -n $"(ansi -e "2K")($beginning)($bar)"
     }
   }
-  print $"\nCompression complete. Started At: (ansi green_bold)($started)(ansi reset) Finished: (ansi green_bold)(date now)(ansi reset)"
+  let now = (date now)
+  let final_size = (ls $src | get size | first)
+  print $"\nCompression (ansi green_bold)completed(ansi reset) in (ansi green_bold)($now - $started)(ansi reset).
+  Started At: (ansi green_bold)($started)(ansi reset) Finished: (ansi green_bold)($now)(ansi reset)
+  Original Size:(ansi red_bold)($size)(ansi reset) Final size: (ansi green_bold)($final_size)(ansi reset), (ansi green_bold)(($final_size / $size * 100) | math round --precision 2)%(ansi reset) of original size"
 }
 
 export def "compress-inplace" [
