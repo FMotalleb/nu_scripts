@@ -87,7 +87,7 @@ export def "compress-big-videos-recurs" [] {
   let directories = (ls --full-paths --directory **/)
   let pwd = (pwd)
   for dir in $directories {
-    cd $dir
+    cd ($dir | get name)
     compress-big-videos
     cd $pwd
   }
