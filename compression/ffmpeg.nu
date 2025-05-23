@@ -69,6 +69,7 @@ export def "compress-inplace" [
     retry { 
       compress-video $full_src $temp_target 
     }
+    sleep 5sec
     let src_length = (ffprobe-nu $full_src | get format.duration | into int)
     let final_length = (ffprobe-nu $temp_target | get format.duration | into int)
     if $src_length != $final_length {
@@ -82,6 +83,7 @@ export def "compress-inplace" [
   print $"\nDirectory (ansi green_bold)completed(ansi reset) in (ansi green_bold)($now - $started)(ansi reset).
   Started At: (ansi green_bold)($started)(ansi reset) Finished: (ansi green_bold)($now)(ansi reset)
   Original Directory Size:(ansi red_bold)($size)(ansi reset) Final size: (ansi green_bold)($final_size)(ansi reset), (ansi green_bold)(($final_size / $size * 100) | math round --precision 2)%(ansi reset) of original size"
+  return true
 }
 
 export def "compress-big-videos" [] {

@@ -2,8 +2,8 @@
 export def "retry" [act: closure, --count: int = 5, --sleep: duration = 1sec] {
   for run in 0..<$count {
     try {
-      do $act
-      return
+      let result = (do $act)
+      return $result
     } catch {  |err| 
       print $"retry execution, fail count:($run), error: ($err)"
       sleep $sleep
