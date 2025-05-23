@@ -33,7 +33,7 @@ export def "compress-video" [src: string, target: string] {
       print -n $"(ansi -e "2K")($beginning)($bar)"
     }
   }
-  print "\nCompression complete."
+  print $"\nCompression complete. Started At: (ansi green_bold)($started)(ansi reset) Finished: (ansi green_bold)(date now)(ansi reset)"
 }
 
 export def "compress-inplace" [
