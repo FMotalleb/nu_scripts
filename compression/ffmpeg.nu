@@ -10,14 +10,15 @@ export def "compress-video" [src: string, target: string] {
   mut state = 0
   print $"Original size: (ansi red)($size)(ansi reset)"
   print $"Starting the process"
-  for line in (ffmpeg -hwaccel cuda -stats -y -i $src -c:v hevc_nvenc -preset p7 -rc vbr -cq 25 -b:v 2M -maxrate 5M -bufsize 10M -c:a aac -b:a 128k -movflags +faststart -progress pipe:1 $target out+err>| lines) {
-    if $line =~ '^out_time_ms' {
-      let out_str = ($line | str replace 'out_time_ms=' '')
-      let current_state = $state
-      let beginning = $"\r(progress indicator $current_state) "
-      $state = $state + 1
-      if $out_str !~ r#'\d+'# {
-        return $beginning
+  let cmd = $"ffmpeg -hwaccel cuda -stats -y -i '($src)' -c:v hevc_nvenc -preset p7 -rc vbr -cq 25 -b:v 2M -maxrate 5M -bufsize 10M -c:a aac -b:a 128k -movflags +faststart -progress pipe:1 '($target)'"
+  for line in (nu -c $cmd out+err>| lines) {
+      if $line =~ '^out_time_ms' {
+        let out_str = ($line | str replace 'out_time_ms=' '')
+        let current_state = $state
+        let beginning = $"\r(progress indicator $current_state) "
+        $state = $state + 1
+        if $out_str !~ r#'\d+'# {
+          return $beginning
       }
       let out_ms = ($out_str | into int)
       let out_sec = ($out_ms / 1_000_000)
@@ -69,6 +70,11 @@ export def "compress-inplace" [
     retry { 
       compress-video $full_src $temp_target 
     }
+    let src_length = (ffprobe-nu $full_src | get format.duration | into int)
+    let final_length = (ffprobe-nu $temp_target | get format.duration | into int)
+    if $src_length != $final_length {
+      error make {msg: $"original file is longer than converted file, unacceptable, src: ($full_src), diff: ($src_length - $final_length)", }
+    }
     mv --force $temp_target $full_src
   }
 
@@ -86,11 +92,11 @@ export def "compress-big-videos" [] {
 }
 
 export def "compress-big-videos-recurs" [] {
-  let directories = (ls --full-paths --directory **/)
+  let directories = (ls --full-paths --directory **/*/ | where type == "dir" | get name | append "./")
   let pwd = (pwd)
   for dir in $directories {
-    cd ($dir | get name)
-    print $"Working directory: (ansi green_bold)($dir | get name)(ansi reset)"
+    cd $dir
+    print $"Working directory: (ansi green_bold)($dir)(ansi reset)"
     compress-big-videos
     cd $pwd
   }
