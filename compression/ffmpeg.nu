@@ -43,6 +43,10 @@ export def "compress-video" [src: string, target: string] {
 export def "compress-inplace" [
   test?: closure
 ] {
+  
+  let started = (date now)
+  let size = (du --max-depth 0 | reduce --fold 0Mb {|it, acc| $acc + $it.physical})
+  
   let default_test = { |file| true }
   let filter = if ($test == null) { $default_test } else { $test }
   let items = (
@@ -62,10 +66,16 @@ export def "compress-inplace" [
     compress-video $full_src $temp_target
     mv --force $temp_target $full_src
   }
+
+  let now = (date now)
+  let final_size = (du --max-depth 0 | reduce --fold 0Mb {|it, acc| $acc + $it.physical})
+  print $"\nDirectory (ansi green_bold)completed(ansi reset) in (ansi green_bold)($now - $started)(ansi reset).
+  Started At: (ansi green_bold)($started)(ansi reset) Finished: (ansi green_bold)($now)(ansi reset)
+  Original Directory Size:(ansi red_bold)($size)(ansi reset) Final size: (ansi green_bold)($final_size)(ansi reset), (ansi green_bold)(($final_size / $size * 100) | math round --precision 2)%(ansi reset) of original size"
 }
 
 export def "compress-big-videos" [] {
-   compress-inplace { |it|
-      ((ls $it | get size | first) > 2gb) and ((ffprobe-nu $it | get format.bit_rate | into filesize) > 6Mb)
-    }
+  compress-inplace { |it|
+    ((ls $it | get size | first) > 2gb) and ((ffprobe-nu $it | get format.bit_rate | into filesize) > 6Mb)
+  }
 }
