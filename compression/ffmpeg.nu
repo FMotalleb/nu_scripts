@@ -29,7 +29,7 @@ export def "compress-video" [src: string, target: string] {
       let elapsed_str = ($elapsed | into string | str replace --regex "(?!.+sec) .*" "")
       let remain_str = ($remain | into string | str replace --regex "(?!.+sec) .*" "")
       let width = (term size | get columns) / 4
-      let bar = $"[(progress bar $percent --width $width | ansi gradient --fgstart '0xC03060' --fgend '0x00FF90')] ($percent * 100 | math ceil)% elapsed: (ansi green_bold)($elapsed_str)(ansi reset) remaining: (ansi green_bold)($remain_str)(ansi reset), final size: ~(ansi green_bold)($final_size) MiB(ansi reset)"
+      let bar = $"[(progress bar $percent --width $width | ansi gradient --fgstart '0xD03060' --fgend '0x00FF00')] ($percent * 100 | math ceil)% elapsed: (ansi green_bold)($elapsed_str)(ansi reset) remaining: (ansi green_bold)($remain_str)(ansi reset), final size: ~(ansi green_bold)($final_size) MiB(ansi reset)"
       print -n $"(ansi -e "2K")($beginning)($bar)"
     }
   }
