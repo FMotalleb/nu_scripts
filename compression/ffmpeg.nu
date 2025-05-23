@@ -7,13 +7,16 @@ export def "compress-video" [src: string, target: string] {
   let duration_sec = (ffprobe-nu $src | get format.duration | into int)
   let size = (ls $src | get size | first)
   let started = (date now)
+  mut state = 0
   print $"Original size: (ansi red)($size)(ansi reset)"
-  ffmpeg -hwaccel cuda -stats -y -i $src -c:v hevc_nvenc -preset p7 -rc vbr -cq 25 -b:v 2M -maxrate 5M -bufsize 10M -c:a aac -b:a 128k -movflags +faststart -progress pipe:1 $target out+err>| lines |
-  each { |line|
+  for line in (ffmpeg -hwaccel cuda -stats -y -i $src -c:v hevc_nvenc -preset p7 -rc vbr -cq 25 -b:v 2M -maxrate 5M -bufsize 10M -c:a aac -b:a 128k -movflags +faststart -progress pipe:1 $target out+err>| lines) {
     if $line =~ '^out_time_ms' {
       let out_str = ($line | str replace 'out_time_ms=' '')
+      let current_state = $state
+      let beginning = $"\r(progress indicator $current_state) "
+      $state = $state + 1
       if $out_str !~ r#'\d+'# {
-        return
+        return $beginning
       }
       let out_ms = ($out_str | into int)
       let out_sec = ($out_ms / 1_000_000)
@@ -26,8 +29,8 @@ export def "compress-video" [src: string, target: string] {
       let elapsed_str = ($elapsed | into string | str replace --regex "(?!.+sec) .*" "")
       let remain_str = ($remain | into string | str replace --regex "(?!.+sec) .*" "")
       let width = (term size | get columns) / 4
-      let bar = $"[(create-progress-bar $percent --width $width | ansi gradient --fgstart '0xC03060' --fgend '0x00FF90')] ($percent * 100 | math ceil)% elapsed: (ansi green_bold)($elapsed_str)(ansi reset) remaining: (ansi green_bold)($remain_str)(ansi reset), final size: ~(ansi green_bold)($final_size) MiB(ansi reset)"
-      print -n $"(ansi -e "2K")\r($bar)"
+      let bar = $"[(progress bar $percent --width $width | ansi gradient --fgstart '0xC03060' --fgend '0x00FF90')] ($percent * 100 | math ceil)% elapsed: (ansi green_bold)($elapsed_str)(ansi reset) remaining: (ansi green_bold)($remain_str)(ansi reset), final size: ~(ansi green_bold)($final_size) MiB(ansi reset)"
+      print -n $"(ansi -e "2K")($beginning)($bar)"
     }
   }
   print "\nCompression complete."

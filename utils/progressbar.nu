@@ -2,7 +2,7 @@
 
 
 
-export def create-progress-bar [
+export def "progress bar" [
     percent: float, 
     --width: int
   ]: nothing -> string {
