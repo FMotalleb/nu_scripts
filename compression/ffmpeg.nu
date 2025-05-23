@@ -10,8 +10,7 @@ export def "compress-video" [src: string, target: string] {
   mut state = 0
   print $"Original size: (ansi red)($size)(ansi reset)"
   print $"Starting the process"
-  let cmd = $"ffmpeg -hwaccel cuda -stats -y -i '($src)' -c:v hevc_nvenc -preset p7 -rc vbr -cq 25 -b:v 2M -maxrate 5M -bufsize 10M -c:a aac -b:a 128k -movflags +faststart -progress pipe:1 '($target)'"
-  for line in (nu -c $cmd out+err>| lines) {
+  for line in (ffmpeg -hwaccel cuda -stats -y -i ($src) -c:v hevc_nvenc -preset p7 -rc vbr -cq 25 -b:v 2M -maxrate 5M -bufsize 10M -c:a aac -b:a 128k -movflags +faststart -progress pipe:1 ($target) out+err>| lines) {
       if $line =~ '^out_time_ms' {
         let out_str = ($line | str replace 'out_time_ms=' '')
         let current_state = $state
