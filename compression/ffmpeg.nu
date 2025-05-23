@@ -82,3 +82,13 @@ export def "compress-big-videos" [] {
     ((ls $it | get size | first) > 2gb) and ((ffprobe-nu $it | get format.bit_rate | into filesize) > 6Mb)
   }
 }
+
+export def "compress-big-videos-recurs" [] {
+  let directories = (ls --full-paths --directory **/)
+  let pwd = (pwd)
+  for dir in $directories {
+    cd $dir
+    compress-big-videos
+    cd $pwd
+  }
+}
