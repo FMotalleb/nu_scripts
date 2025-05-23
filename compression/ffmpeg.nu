@@ -9,6 +9,7 @@ export def "compress-video" [src: string, target: string] {
   let started = (date now)
   mut state = 0
   print $"Original size: (ansi red)($size)(ansi reset)"
+  print $"Starting the process"
   for line in (ffmpeg -hwaccel cuda -stats -y -i $src -c:v hevc_nvenc -preset p7 -rc vbr -cq 25 -b:v 2M -maxrate 5M -bufsize 10M -c:a aac -b:a 128k -movflags +faststart -progress pipe:1 $target out+err>| lines) {
     if $line =~ '^out_time_ms' {
       let out_str = ($line | str replace 'out_time_ms=' '')
@@ -25,12 +26,14 @@ export def "compress-video" [src: string, target: string] {
       let elapsed = ($now - $started)
       let remain = ($elapsed / $percent) - $elapsed
       let target_size = (ls $target | get size | first)
-      let final_size = ((($target_size | into int) / $percent) / 1_048_576 | math floor)
+      let final_size = ($target_size / $percent)
+      let final_size_mib = ($final_size  / 1_048_576 | into int)
       let elapsed_str = ($elapsed | into string | str replace --regex "(?!.+sec) .*" "")
       let remain_str = ($remain | into string | str replace --regex "(?!.+sec) .*" "")
-      let width = (term size | get columns) / 4
-      let bar = $"[(progress bar $percent --width $width | ansi gradient --fgstart '0xD03030' --fgend '0x00FF00')] ($percent * 100 | math ceil)% elapsed: (ansi green_bold)($elapsed_str)(ansi reset) remaining: (ansi green_bold)($remain_str)(ansi reset), final size: ~(ansi green_bold)($final_size) MiB(ansi reset) (ansi green_bold)(($final_size / $size * 100) | math round --precision 2)%(ansi reset)"
-      print -n $"(ansi -e "2K")($beginning)($bar)"
+      let width = ((term size | get columns) * 0.8 | into int)
+      let progress_line = $"[(progress bar $percent --width $width | ansi gradient --fgstart '0xD03030' --fgend '0x00FF00')] ($percent * 100 | math ceil)%"
+      let info_line = $"elapsed: (ansi green_bold)($elapsed_str)(ansi reset) remaining: (ansi green_bold)($remain_str)(ansi reset), final size: (ansi green_bold)~($final_size_mib) MiB(ansi reset) reduction: (ansi green_bold)~(((1 - $final_size / $size) * 100) | math round --precision 2)%(ansi reset)"
+      print -n $"(ansi -e "1A")(ansi -e "2K")\r($info_line)\n(ansi -e "2K")($progress_line)"
     }
   }
   let now = (date now)
