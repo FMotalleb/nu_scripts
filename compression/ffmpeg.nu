@@ -66,7 +66,9 @@ export def "compress-inplace" [
     let temp_target = ($"000.compressing.($parsed.stem | str trim).($parsed.extension)")
     print $"($index)/($length) * Encoding (ansi green_bold)`($full_src)`(ansi reset)"
     $index = $index + 1
-    compress-video $full_src $temp_target
+    retry { 
+      compress-video $full_src $temp_target 
+    }
     mv --force $temp_target $full_src
   }
 
@@ -88,7 +90,9 @@ export def "compress-big-videos-recurs" [] {
   let pwd = (pwd)
   for dir in $directories {
     cd ($dir | get name)
+    print $"Working directory: (ansi green_bold)($dir | get name)(ansi reset)"
     compress-big-videos
     cd $pwd
   }
 }
+
