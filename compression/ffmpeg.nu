@@ -10,14 +10,14 @@ export def "compress-video" [src: string, target: string] {
   mut state = 0
   print $"Original size: (ansi red)($size)(ansi reset)"
   print $"Starting the process"
-  for line in (ffmpeg -hwaccel cuda -stats -y -i ($src) -c:v hevc_nvenc -preset p7 -rc vbr -cq 25 -b:v 2M -maxrate 5M -bufsize 10M -c:a aac -b:a 128k -movflags +faststart -progress pipe:1 ($target) out+err>| lines) {
-      if $line =~ '^out_time_ms' {
-        let out_str = ($line | str replace 'out_time_ms=' '')
-        let current_state = $state
-        let beginning = $"\r(progress indicator $current_state) "
-        $state = $state + 1
-        if $out_str !~ r#'\d+'# {
-          return $beginning
+  for line in (ffmpeg -hwaccel cuda -stats -y -i $src -c:v hevc_nvenc -preset p7 -rc vbr -cq 25 -b:v 2M -maxrate 5M -bufsize 10M -c:a aac -b:a 128k -movflags +faststart -progress pipe:1 $target out+err>| lines) {
+    if $line =~ '^out_time_ms' {
+      let out_str = ($line | str replace 'out_time_ms=' '')
+      let current_state = $state
+      let beginning = $"\r(progress indicator $current_state) "
+      $state = $state + 1
+      if $out_str !~ '\d+' {
+        return $beginning
       }
       let out_ms = ($out_str | into int)
       let out_sec = ($out_ms / 1_000_000)
@@ -25,7 +25,7 @@ export def "compress-video" [src: string, target: string] {
       let now = (date now)
       let elapsed = ($now - $started)
       let remain = ($elapsed / $percent) - $elapsed
-      let target_size = (stat -c %s $target | into filesize)
+      let target_size = (ls $target | first | get size)
       let final_size = ($target_size / $percent)
       let final_size_mib = ($final_size  / 1_048_576 | into int)
       let elapsed_str = ($elapsed | into string | str replace --regex "(?!.+sec) .*" "")
@@ -34,10 +34,10 @@ export def "compress-video" [src: string, target: string] {
       let progress_line = $"($beginning)[(progress bar $percent --width $width | ansi gradient --fgstart '0xD03030' --fgend '0x00FF00')] ($percent * 100 | math round --precision 2)%"
       let info_line = $"elapsed: (ansi green_bold)($elapsed_str)(ansi reset) remaining: (ansi green_bold)($remain_str)(ansi reset), final size: (ansi green_bold)~($final_size_mib) MiB(ansi reset) reduction: (ansi green_bold)~(((1 - $final_size / $size) * 100) | math round --precision 2)%(ansi reset)"
       print -n $"(ansi -e "1A")(ansi -e "2K")\r($info_line)\n(ansi -e "2K")($progress_line)"
-    }
+    } 
   }
   let now = (date now)
-  let final_size = (stat -c %s $target | into filesize)
+  let final_size = (ls $target | first | get size)
   print $"\nCompression (ansi green_bold)completed(ansi reset) in (ansi green_bold)($now - $started)(ansi reset).
   Started At: (ansi green_bold)($started)(ansi reset) Finished: (ansi green_bold)($now)(ansi reset)
   Original Size:(ansi red_bold)($size)(ansi reset) Final size: (ansi green_bold)($final_size)(ansi reset), (ansi green_bold)(($final_size / $size * 100) | math round --precision 2)%(ansi reset) of original size"
