@@ -1,3 +1,4 @@
+# TODO: too many divisions but no zero check (LoL)
 
 export def "ffprobe-nu" [input: path] {
   ffprobe -v quiet -print_format json -show_format -show_streams $input | from json
