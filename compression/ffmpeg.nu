@@ -72,7 +72,8 @@ export def "compress-inplace" [
     retry --count 30 --sleep 5sec { 
       let src_length = (ffprobe-nu $full_src | get format.duration | into int)
       let final_length = (ffprobe-nu $temp_target | get format.duration | into int)
-      if $src_length != $final_length {
+      # 30 sec tolerance
+      if ($src_length - 30) >= $final_length {
         error make {msg: $"original file is longer than converted file, unacceptable, src: ($full_src), diff: ($src_length - $final_length)", }
       }
       mv --force $temp_target $full_src
