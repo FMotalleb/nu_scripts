@@ -1,4 +1,6 @@
 # TODO: too many divisions but no zero check (LoL)
+use std log
+
 
 export def "ffprobe-nu" [input: path] {
   ffprobe -v quiet -print_format json -show_format -show_streams $input | from json
@@ -11,8 +13,11 @@ export def "compress-video" [src: string, target: string] {
   mut state = 0
   print $"Original size: (ansi red)($size)(ansi reset)"
   print $"Starting the process"
+  log debug $"Starting compression of ($src) to ($target), duration: ($duration_sec) seconds, size: ($size)"
   for line in (ffmpeg -hwaccel cuda -stats -y -i $src -c:v hevc_nvenc -preset p7 -rc vbr -cq 25 -b:v 2M -maxrate 5M -bufsize 10M -c:a aac -b:a 128k -movflags +faststart -progress pipe:1 $target out+err>| lines) {
+    log debug $"Processing line: ($line)"
     if $line =~ '^out_time_ms' {
+      log debug $"Found progress line: ($line)"
       let out_str = ($line | str replace 'out_time_ms=' '')
       let current_state = $state
       let beginning = $"\r(progress indicator $current_state) "
@@ -32,6 +37,7 @@ export def "compress-video" [src: string, target: string] {
       let elapsed_str = ($elapsed | into string | str replace --regex "(?!.+sec) .*" "")
       let remain_str = ($remain | into string | str replace --regex "(?!.+sec) .*" "")
       let width = ((term size | get columns) * 0.8 | into int)
+      log debug $"Progress: ($percent), Elapsed: ($elapsed_str), Remaining: ($remain_str), Final Size: ($final_size_mib) MiB"
       let progress_line = $"($beginning)[(progress bar $percent --width $width | ansi gradient --fgstart '0xD03030' --fgend '0x00FF00')] ($percent * 100 | math round --precision 2)%"
       let info_line = $"elapsed: (ansi green_bold)($elapsed_str)(ansi reset) remaining: (ansi green_bold)($remain_str)(ansi reset), final size: (ansi green_bold)~($final_size_mib) MiB(ansi reset) reduction: (ansi green_bold)~(((1 - $final_size / $size) * 100) | math round --precision 2)%(ansi reset)"
       print -n $"(ansi -e "1A")(ansi -e "2K")\r($info_line)\n(ansi -e "2K")($progress_line)"
@@ -39,6 +45,7 @@ export def "compress-video" [src: string, target: string] {
   }
   let now = (date now)
   let final_size = (ls $target | first | get size)
+  log debug $"Compression completed, final size: ($final_size), original size: ($size)"
   print $"\nCompression (ansi green_bold)completed(ansi reset) in (ansi green_bold)($now - $started)(ansi reset).
   Started At: (ansi green_bold)($started)(ansi reset) Finished: (ansi green_bold)($now)(ansi reset)
   Original Size:(ansi red_bold)($size)(ansi reset) Final size: (ansi green_bold)($final_size)(ansi reset), (ansi green_bold)(($final_size / $size * 100) | math round --precision 2)%(ansi reset) of original size"
@@ -83,9 +90,11 @@ export def "compress-inplace" [
     retry { 
       compress-video $full_src $temp_target 
     }
+    log debug $"Compression of ($full_src) to ($temp_target) finished, waiting for ffmpeg to unlock the temporary file"
     if (not (until unlocked $temp_target --timeout 10min --holder "ffmpeg.exe") ) {
       error make {msg: $"file ($temp_target) is locked by ffmpeg, cannot continue, please check if ffmpeg is running and try again", }
     }
+    log debug $"ffmpeg unlocked the temporary file will proceed to switch temp file with original"
     retry --count 30 --sleep 5sec { 
       let src_length = (ffprobe-nu $full_src | get format.duration | into int)
       let final_length = (ffprobe-nu $temp_target | get format.duration | into int)
@@ -93,6 +102,7 @@ export def "compress-inplace" [
       if ($src_length - 30) >= $final_length {
         error make {msg: $"original file is longer than converted file, unacceptable, src: ($full_src), diff: ($src_length - $final_length)", }
       }
+      log debug $"Final length: ($final_length), source length: ($src_length), difference: ($src_length - $final_length)"
       mv --force $temp_target $full_src
     }
   }
