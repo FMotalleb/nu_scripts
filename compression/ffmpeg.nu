@@ -81,7 +81,10 @@ export def "compress-inplace" [
     print $"($index)/($length) * Encoding (ansi green_bold)`($full_src)`(ansi reset)"
     $index = $index + 1
     retry { 
-      compress-video $full_src $temp_target
+      compress-video $full_src $temp_target 
+    }
+    if (not (until unlocked $temp_target --timeout 10min --holder "ffmpeg.exe") ) {
+      error make {msg: $"file ($temp_target) is locked by ffmpeg, cannot continue, please check if ffmpeg is running and try again", }
     }
     retry --count 30 --sleep 5sec { 
       let src_length = (ffprobe-nu $full_src | get format.duration | into int)
