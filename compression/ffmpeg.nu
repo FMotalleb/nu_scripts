@@ -56,13 +56,26 @@ export def "compress-inplace" [
   let items = (
     ls
     | where type == "file"
-    | get name
-    | filter {|f| do $filter $f }
-    | where ($it !~ "^000.")
+    | where name !~ "^000."
+    | select name size
+    | filter {|f| do $filter ($f | get name) }
   )
+  let predictedSize = (
+    $items 
+    | each {|it| $it.size * (5Mb / (ffprobe-nu $it.name | get format.bit_rate | into filesize)) }
+    | reduce --fold 0Mb {|it, acc| $acc + $it }
+  )
+  let totalSize = (
+    $items 
+    | get size
+    | reduce --fold 0Mb {|it, acc| $acc + $it }
+  )
+
+  print $"Current size: (ansi red_bold)( $totalSize)(ansi reset)"
+  print $"Predicted size after conversion: (ansi green_bold)( $predictedSize)(ansi reset)"
   mut index = 1
   let length = ($items | length)
-  for full_src in $items {
+  for full_src in ($items | get name) {
     let parsed = ($full_src | path parse)
     let temp_target = ($"000.compressing.($parsed.stem | str trim).($parsed.extension)")
     print $"($index)/($length) * Encoding (ansi green_bold)`($full_src)`(ansi reset)"
