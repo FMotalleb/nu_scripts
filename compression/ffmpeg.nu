@@ -68,7 +68,7 @@ export def "compress-inplace" [
     | filter {|f| do $filter ($f | get name) }
   )
   if ($items | is-empty) {
-    print "not file selected"
+    print "no file selected"
     return false
   }
   let predictedSize = (
