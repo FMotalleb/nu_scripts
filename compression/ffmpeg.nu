@@ -109,6 +109,11 @@ export def "compress-inplace" [
 
   let now = (date now)
   let final_size = (du --max-depth 0 | reduce --fold 0Mb {|it, acc| $acc + $it.physical})
+  if ($size == 0) {
+    print $"\nDirectory (ansi green_bold)completed(ansi reset) in (ansi green_bold)($now - $started)(ansi reset).
+  Started At: (ansi green_bold)($started)(ansi reset) Finished: (ansi green_bold)($now)(ansi reset)"
+    return true
+  }
   print $"\nDirectory (ansi green_bold)completed(ansi reset) in (ansi green_bold)($now - $started)(ansi reset).
   Started At: (ansi green_bold)($started)(ansi reset) Finished: (ansi green_bold)($now)(ansi reset)
   Original Directory Size:(ansi red_bold)($size)(ansi reset) Final size: (ansi green_bold)($final_size)(ansi reset), (ansi green_bold)(($final_size / $size * 100) | math round --precision 2)%(ansi reset) of original size"
