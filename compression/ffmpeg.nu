@@ -109,7 +109,7 @@ export def "compress-inplace" [
 
   let now = (date now)
   let final_size = (du --max-depth 0 | reduce --fold 0Mb {|it, acc| $acc + $it.physical})
-  if ($size == 0) {
+  if ($size <= 1Mb) {
     print $"\nDirectory (ansi green_bold)completed(ansi reset) in (ansi green_bold)($now - $started)(ansi reset).
   Started At: (ansi green_bold)($started)(ansi reset) Finished: (ansi green_bold)($now)(ansi reset)"
     return true
