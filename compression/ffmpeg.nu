@@ -65,7 +65,7 @@ export def "compress-inplace" [
     | where type == "file"
     | where name !~ "^000."
     | select name size
-    | filter {|f| do $filter ($f | get name) }
+    | where {|f| do $filter ($f | get name) }
   )
   if ($items | is-empty) {
     print "no file selected"
