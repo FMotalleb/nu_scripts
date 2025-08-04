@@ -7,7 +7,7 @@ export def "ffprobe-nu" [input: path] {
 } 
 
 export def "compress-video" [src: string, target: string] {
-  let duration_sec = (ffprobe-nu $src | get format.duration --ignore-errors | default "60" | into int)
+  let duration_sec = (ffprobe-nu $src | get -o format.duration | default "60" | into int)
   let size = (ls $src | get size | first)
   let started = (date now)
   mut state = 0
