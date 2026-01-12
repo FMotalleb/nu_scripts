@@ -118,7 +118,7 @@ export def "compress-inplace" [
   }
   let predictedSize = (
     $items 
-    | each {|it| $it.size * (1Mb / (ffprobe-nu $it.name | get format.bit_rate | into filesize)) }
+    | each {|it| $it.size * (5MB / (ffprobe-nu $it.name | get format.bit_rate | into filesize)) }
     | reduce --fold 0Mb {|it, acc| $acc + $it }
   )
   let totalSize = (
@@ -138,7 +138,7 @@ export def "compress-inplace" [
       print $"($index)/($length) * Encoding (ansi green_bold)`($full_src)`(ansi reset)"
       $index = $index + 1
       retry { 
-        compress-video-cpu $full_src $temp_target 
+        compress-video $full_src $temp_target 
       }
       log debug $"Compression of ($full_src) to ($temp_target) finished, waiting for ffmpeg to unlock the temporary file"
       if (not (until unlocked $temp_target --timeout 10min --holder "ffmpeg.exe") ) {
@@ -173,7 +173,7 @@ export def "compress-inplace" [
 
 export def "compress-big-videos" [] {
   compress-inplace { |it|
-    ((ls $it | get size | first) > 1gb) and ((ffprobe-nu $it | get format.bit_rate | into filesize) > 2Mb)
+    ((ls $it | get size | first) > 1gb) and ((ffprobe-nu $it | get format.bit_rate | into filesize) > 5Mb)
   }
 }
 
