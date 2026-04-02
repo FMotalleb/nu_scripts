@@ -7,3 +7,4 @@ export use utils/lock-detector.nu *
 export use utils/loops.nu *
 
 export use compression/ffmpeg.nu *
+export use videos/split-chapters.nu *
