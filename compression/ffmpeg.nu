@@ -173,7 +173,7 @@ export def "compress-inplace" [
 
 export def "compress-big-videos" [] {
   compress-inplace { |it|
-    ((ls $it | get size | first) > 1gb) and ((ffprobe-nu $it | get format.bit_rate | into filesize) > 5Mb)
+    ((ls $it | get size | first) > 1gb) and ((ffprobe-nu $it | get format.bit_rate --optional | default 0 | into filesize) > 8Mb)
   }
 }
 
@@ -187,4 +187,3 @@ export def "compress-big-videos-recurs" [] {
     cd $pwd
   }
 }
-
