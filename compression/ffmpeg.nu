@@ -15,11 +15,16 @@ export def "compress-video" [src: string, target: string] {
   print $"Starting the process"
   let max_rate = ($env | get COMPRESS_MAX_RATE --optional | default 5M)
   log debug $"Starting compression of ($src) to ($target), duration: ($duration_sec) seconds, size: ($size)"
-  for line in (ffmpeg -hwaccel cuda -stats -y -i $src -c:v hevc_nvenc -preset p7 -rc vbr -cq 25 -b:v 2M -maxrate $max_rate -bufsize 10M -c:a aac -b:a 128k -movflags +faststart -progress pipe:1 $target out+err>| lines) {
+  log debug $"executing: ffmpeg -hwaccel cuda -stats -y -i ($src) -c:v hevc_nvenc -preset p5 -tune hq -rc vbr -cq 25 -b:v 0 -maxrate ($max_rate) -bufsize 10M -bf 0 -spatial_aq 1 -aq-strength 8 -rc-lookahead 20 -g 240 -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart -progress pipe:1 ($target)"
+  for line in (ffmpeg -hwaccel cuda -stats -y -i $src -c:v hevc_nvenc -preset p5 -tune hq -rc vbr -cq 25 -b:v 0 -maxrate $max_rate -bufsize 10M -bf 0 -spatial_aq 1 -aq-strength 8 -rc-lookahead 20 -g 240 -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart -progress pipe:1 $target out+err>| lines) {
     log debug $"Processing line: ($line)"
     if $line =~ '^out_time_ms' {
       log debug $"Found progress line: ($line)"
       let out_str = ($line | str replace 'out_time_ms=' '')
+      if $out_str !~ r#'^\d+$'# { 
+        log debug "waiting for progress information"
+        continue
+      }
       let current_state = $state
       let beginning = $"\r(progress indicator $current_state) "
       $state = $state + 1
