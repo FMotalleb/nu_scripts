@@ -13,8 +13,9 @@ export def "compress-video" [src: string, target: string] {
   mut state = 0
   print $"Original size: (ansi red)($size)(ansi reset)"
   print $"Starting the process"
+  let max_rate = ($env | get COMPRESS_MAX_RATE --optional | default 5M)
   log debug $"Starting compression of ($src) to ($target), duration: ($duration_sec) seconds, size: ($size)"
-  for line in (ffmpeg -hwaccel cuda -stats -y -i $src -c:v hevc_nvenc -preset p7 -rc vbr -cq 25 -b:v 2M -maxrate 5M -bufsize 10M -c:a aac -b:a 128k -movflags +faststart -progress pipe:1 $target out+err>| lines) {
+  for line in (ffmpeg -hwaccel cuda -stats -y -i $src -c:v hevc_nvenc -preset p7 -rc vbr -cq 25 -b:v 2M -maxrate $max_rate -bufsize 10M -c:a aac -b:a 128k -movflags +faststart -progress pipe:1 $target out+err>| lines) {
     log debug $"Processing line: ($line)"
     if $line =~ '^out_time_ms' {
       log debug $"Found progress line: ($line)"
